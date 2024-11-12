@@ -79,6 +79,59 @@ const ImageEditor = () => {
     setSelectionRect(cropper.getCoordinates());
   };
 
+  const getImageData = async () => {
+    if (!src) return;
+
+    const canvas = document.createElement("canvas");
+    await drawImage(canvas, src);
+
+    return getCanvasData(canvas);
+  };
+
+  const getMaskData = async () => {
+    if (!src || !selectionRect) return;
+
+    const canvas = document.createElement("canvas");
+
+    await drawImage(canvas, src);
+    drawMask(canvas, selectionRect);
+
+    return getCanvasData(canvas);
+  };
+
+  const drawImage = (canvas: HTMLCanvasElement | null, src: string) => {
+    const context = canvas?.getContext("2d");
+
+    if (!canvas || !context) return;
+
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+
+      img.onload = () => {
+        const width = img.width;
+        const height = img.height;
+
+        canvas.width = width;
+        canvas.height = height;
+
+        context.drawImage(img, 0, 0, width, height);
+        resolve(context);
+      };
+      img.src = src;
+    });
+  };
+
+  const drawMask = (
+    canvas: HTMLCanvasElement | null,
+    rect: Coordinates | null
+  ) => {
+    const context = canvas?.getContext("2d");
+    if (!context || !rect) return;
+
+    context.globalCompositeOperation = "destination-out";
+    context.fillRect(rect.left, rect.top, rect.width, rect.height);
+  };
   return (
     <div className="w-full overflow-hidden rounded-lg bg-slate-950">
       {isGenerating ? (
@@ -107,6 +160,8 @@ const ImageEditor = () => {
         onUpload={onUpload}
         onDownload={onDownload}
         onCrop={crop}
+        getImageData={getImageData}
+        getMaskData={getMaskData}
       />
     </div>
   );
